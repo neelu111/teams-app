@@ -278,7 +278,7 @@ function IntegrationsSection() {
       <FieldRow label="Signing Secret">
         <div className="flex items-center gap-2">
           <div className="flex-1 px-3 py-2 text-xs border border-border rounded-lg bg-slate-50 text-muted-foreground font-mono">
-            {showSecret ? 'sk_live_x9mKpT3nYqRv8wZ2aE6hJ1sL4bCdFg' : 'sk_live_••••••••••••••••••••••••••••••'}
+          {showSecret ? '' : ''}
           </div>
           <button
             onClick={() => setShowSecret(!showSecret)}
