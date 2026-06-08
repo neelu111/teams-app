@@ -138,7 +138,7 @@ export default function App() {
     return <LoginScreen onLogin={(userId) => { setActiveUserId(userId); setAppState('workspace'); }} />;
   }
   if (appState === 'workspace') {
-    return <WorkspaceScreen onSelect={() => setAppState('app')} />;
+    return <WorkspaceScreen onSelect={() => setAppState('app')} onBack={() => setAppState('login')} />;
   }
 
   if (activeUser.role === 'manager') {

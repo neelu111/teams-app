@@ -1,4 +1,4 @@
-export type EScreen = 'home' | 'ai' | 'tasks' | 'workflows' | 'notifications' | 'profile';
+export type EScreen = 'home' | 'ai' | 'tasks' | 'workflows' | 'notifications' | 'profile' | 'settings' | 'connectors';
 
 export type TaskStatus = 'pending' | 'in-progress' | 'needs-action' | 'completed' | 'overdue';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low';
@@ -441,7 +441,17 @@ export const employeeWorkflows: EWorkflow[] = [
       { label: 'Workflow and thread audit updated', status: 'done' },
     ],
   },
+  
 ];
+
+// Simple in-memory mock of connector connection state for the current user.
+// Keys: connector id -> connected boolean
+export let employeeConnectors: { [connectorId: string]: boolean } = {
+  'google-calendar': false,
+  'gmail': false,
+  'google-drive': false,
+  'outlook': false,
+};
 
 export const employeeNotifications: ENotification[] = [
   {
@@ -754,6 +764,57 @@ export const employeeThreads: EThread[] = [
           lastStep: 'Email sent to Priya and Alex with updated timeline',
         },
       },
+    ],
+  },
+  {
+    id: 'eth-006',
+    title: 'Onboarding: Integrations Checklist',
+    agentName: 'HR',
+    agentType: 'hr',
+    lastMessage: 'DevOps completed the integration credentials; HR will schedule access review.',
+    timestamp: '2026-06-03T09:45:00Z',
+    timeLabel: 'Yesterday',
+    unread: 0,
+    messages: [
+      { id: 'm1', role: 'user', content: '@HR Please ensure Dhathri has access to HubSpot and Salesforce before Friday.', timestamp: '2026-06-02T08:10:00Z', type: 'text' },
+      { id: 'm2', role: 'agent', agentName: 'HR', agentType: 'hr', content: 'Acknowledged. I will coordinate with DevOps for provisioning and with Sales for access scopes.', timestamp: '2026-06-02T08:12:00Z', type: 'text' },
+      { id: 'm3', role: 'agent', agentName: 'DevOps', agentType: 'operations', content: 'Provisioning complete: HubSpot and Salesforce credentials created. Notifying IT for SSO enrollment.', timestamp: '2026-06-02T10:00:00Z', type: 'workflow-card', cardData: { title: 'Onboarding Provisioning', progress: 100, status: 'completed', completedTasks: 4, taskCount: 4, lastStep: 'SSO enrollment scheduled' } },
+      { id: 'm4', role: 'user', content: '@DevOps thanks — @HR can you schedule an access review and add Dhathri to the Sales channel?', timestamp: '2026-06-02T10:15:00Z', type: 'text' },
+      { id: 'm5', role: 'agent', agentName: 'HR', agentType: 'hr', content: 'Access review scheduled for June 4 at 2 PM. I added Dhathri to the Sales channel and sent welcome docs.', timestamp: '2026-06-02T11:00:00Z', type: 'text' },
+    ],
+  },
+  {
+    id: 'eth-007',
+    title: 'Feature Request: Bulk Export',
+    agentName: 'Command',
+    agentType: 'super',
+    lastMessage: 'Command queued a feature request and created an approval for prioritization.',
+    timestamp: '2026-06-03T14:20:00Z',
+    timeLabel: 'Today',
+    unread: 0,
+    messages: [
+      { id: 'm1', role: 'user', content: '@Command Sales needs a bulk CSV export of quarterly deals for forecasting — high priority for leadership.', timestamp: '2026-06-03T13:05:00Z', type: 'text' },
+      { id: 'm2', role: 'agent', agentName: 'Command', agentType: 'super', content: 'Understood. I drafted a feature request and recommended priority: high. Creating approval request for Product and Finance.', timestamp: '2026-06-03T13:06:00Z', type: 'text' },
+      { id: 'm3', role: 'agent', agentName: 'Finance', agentType: 'finance', content: 'Finance: supportive — this helps export revenue schedules for forecasting. Approving for budget review.', timestamp: '2026-06-03T13:20:00Z', type: 'text' },
+      { id: 'm4', role: 'agent', agentName: 'Marketing', agentType: 'research', content: 'Marketing: also useful for campaign ROI breakdowns. Please include tag filters.', timestamp: '2026-06-03T13:35:00Z', type: 'text' },
+      { id: 'm5', role: 'agent', agentName: 'Command', agentType: 'super', content: 'Approval required: Allocate dev time for CSV export (estimated 2 sprints).', timestamp: '2026-06-03T13:50:00Z', type: 'approval-card', cardData: { title: 'Approve: Bulk Export Feature', description: 'CSV export for quarterly deals with tag filters', requestedBy: 'Sales (via Command)', impact: 'Enables forecasting exports · reduces manual effort', deadline: '2026-06-10' } },
+    ],
+  },
+  {
+    id: 'eth-008',
+    title: 'Payroll Discrepancy — May',
+    agentName: 'Finance',
+    agentType: 'finance',
+    lastMessage: 'Finance identified the missing stipend and created a follow-up task for HR.',
+    timestamp: '2026-06-04T08:30:00Z',
+    timeLabel: 'Today',
+    unread: 1,
+    messages: [
+      { id: 'm1', role: 'user', content: '@Kumar I noticed my May stipend is missing from the payroll run. Can someone check?', timestamp: '2026-06-04T07:45:00Z', type: 'text' },
+      { id: 'm2', role: 'agent', agentName: 'Finance', agentType: 'finance', content: 'Investigating: checking payroll batch and reconciliation logs. Please confirm your employee ID and last four of SSN via DM.', timestamp: '2026-06-04T07:50:00Z', type: 'text' },
+      { id: 'm3', role: 'user', content: '@Kumar Employee ID KU-001, last4 1234. Thanks.', timestamp: '2026-06-04T07:52:00Z', type: 'text' },
+      { id: 'm4', role: 'agent', agentName: 'Finance', agentType: 'finance', content: 'Found discrepancy: stipend line omitted due to mapping error. Creating a task to process a supplemental payment.', timestamp: '2026-06-04T08:00:00Z', type: 'task-card', cardData: { title: 'Supplemental Payroll: Kumar', taskId: 'et-011' } },
+      { id: 'm5', role: 'agent', agentName: 'HR', agentType: 'hr', content: 'HR: I will validate the stipend entitlement and confirm the supplemental payment schedule with Finance.', timestamp: '2026-06-04T08:10:00Z', type: 'text' },
     ],
   },
 ];

@@ -6,6 +6,8 @@ import {
   ChevronRight, Bell, Zap,
 } from 'lucide-react';
 import { EScreen, EThread, EMessage, employeeThreads, employeeTasks } from '../employeeData';
+import { isConnectorConnected, setConnectorConnected, setConnectorCredentials } from '../../shared/connectors';
+import { addAuditEvent, listAuditEvents } from '../../shared/audit';
 import { AgentAvatar } from '../../shared/AgentAvatar';
 import { MentionOption, getActiveMention, getMentionSuggestions, insertMention, renderTextWithMentions, extractMentionLabels } from '../../shared/mentions';
 import { generateThreadTitle } from '../../shared/threadNaming';
@@ -174,6 +176,48 @@ function MessageBubble({ msg, onApprove, onReject, approvalStates }: { msg: EMes
           ))}
         </div>
         {msg.type === 'workflow-card' && msg.cardData && <WorkflowCard data={msg.cardData} />}
+        {msg.type === 'connector-request' && msg.cardData && (() => {
+          const cid = msg.cardData.connectorId as string;
+          const [showCredForm, setShowCredForm] = React.useState(false);
+          const [credValue, setCredValue] = React.useState('');
+          return (
+            <div className="mt-2 border border-indigo-100 rounded-xl bg-indigo-50/40 p-4 max-w-md">
+              <div className="text-sm font-semibold text-foreground mb-1">Connector permission requested</div>
+              <div className="text-xs text-muted-foreground mb-3">{msg.content}</div>
+              <div className="flex gap-2 mb-3">
+                <button onClick={() => {
+                  setConnectorConnected(cid, true);
+                  const note: EMessage = { id: `m-${Date.now()+3}`, role: 'system', content: `${cid.replace('-', ' ')} connected. Command will proceed.`, timestamp: new Date().toISOString(), type: 'text' };
+                  setThreads(prev => prev.map(t => t.id === (selectedId || prev[0]?.id) ? { ...t, messages: [...t.messages, note] } : t));
+                  const reply: EMessage = { id: `m-${Date.now()+4}`, role: 'agent', agentName: 'Command', agentType: 'super', content: 'Thanks — I have the access and will complete the action now.', timestamp: new Date().toISOString(), type: 'text' };
+                  setThreads(prev => prev.map(t => t.id === (selectedId || prev[0]?.id) ? { ...t, messages: [...t.messages, reply], lastMessage: reply.content } : t));
+                }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg">Approve</button>
+                <button onClick={() => {
+                  setConnectorConnected(cid, false);
+                  const note: EMessage = { id: `m-${Date.now()+5}`, role: 'system', content: `Permission denied — Command will not access your ${cid.replace('-', ' ')}.`, timestamp: new Date().toISOString(), type: 'text' };
+                  setThreads(prev => prev.map(t => t.id === (selectedId || prev[0]?.id) ? { ...t, messages: [...t.messages, note], lastMessage: note.content } : t));
+                }} className="px-3 py-1.5 border border-border rounded-lg">Deny</button>
+                <button onClick={() => setShowCredForm(s => !s)} className="px-3 py-1.5 border border-border rounded-lg">Provide credentials</button>
+              </div>
+              {showCredForm && (
+                <div className="flex gap-2">
+                  <input value={credValue} onChange={e => setCredValue(e.target.value)} placeholder="mock token / account id" className="flex-1 px-3 py-2 border border-border rounded-lg text-sm" />
+                  <button onClick={() => {
+                    if (!credValue) return;
+                    // store creds and connect
+                    setConnectorCredentials(cid, credValue);
+                    setConnectorConnected(cid, true);
+                    addAuditEvent({ title: 'Connector connected', meta: `${cid} connected via chat credential submission`, connectorId: cid });
+                    const note: EMessage = { id: `m-${Date.now()+6}`, role: 'system', content: `${cid.replace('-', ' ')} credentials saved (mock). Command will proceed.`, timestamp: new Date().toISOString(), type: 'text' };
+                    setThreads(prev => prev.map(t => t.id === (selectedId || prev[0]?.id) ? { ...t, messages: [...t.messages, note] } : t));
+                    const reply: EMessage = { id: `m-${Date.now()+7}`, role: 'agent', agentName: 'Command', agentType: 'super', content: 'Thanks — I have credentials and will complete the action now.', timestamp: new Date().toISOString(), type: 'text' };
+                    setThreads(prev => prev.map(t => t.id === (selectedId || prev[0]?.id) ? { ...t, messages: [...t.messages, reply], lastMessage: reply.content } : t));
+                  }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg">Submit</button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {msg.type === 'approval-card' && msg.cardData && (
           <ApprovalCard
             data={msg.cardData}
@@ -203,14 +247,15 @@ const needsActionTasks = [
   { id: 'et-007', title: 'Review Competitive Analysis — Q3', agent: 'Marketing', status: 'needs-action', label: 'Review', due: 'Due Saturday', labelColor: 'bg-amber-50 text-amber-700', detail: { goal: 'Review and share Q3 competitive report', owner: 'Marketing (Research Agent)', source: 'Q3 Competitive Research thread', due: 'Saturday, 5:00 PM', perms: 'Your sign-off to share with leadership' } },
 ];
 
-const auditEvents = [
-  { color: 'bg-green-500', title: 'Sales created workflow', meta: 'TechCorp Q3 Proposal — today at 9:02 AM', },
-  { color: 'bg-blue-500',  title: 'Account data retrieved', meta: 'Connector: HubSpot CRM — 47 records pulled', },
-  { color: 'bg-blue-500',  title: 'Proposal draft generated', meta: '24 pages · custom pricing configured', },
-  { color: 'bg-amber-500', title: 'Human review requested', meta: 'Waiting on your approval before send', },
-];
+  
 
 function WorkControlPanel({ onApproveTask }: { onApproveTask: (id: string) => void }) {
+  const [auditEventsState, setAuditEventsState] = useState(() => listAuditEvents());
+
+  useEffect(() => {
+    const id = setInterval(() => setAuditEventsState(listAuditEvents()), 1000);
+    return () => clearInterval(id);
+  }, []);
   const [selectedTask, setSelectedTask] = useState(needsActionTasks[0]);
   const [taskStates, setTaskStates] = useState<Record<string, 'pending' | 'approved' | 'rejected'>>({});
   const [hovered, setHovered] = useState(false);
@@ -349,11 +394,11 @@ function WorkControlPanel({ onApproveTask }: { onApproveTask: (id: string) => vo
             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">4 events</span>
           </div>
           <div className="space-y-3">
-            {auditEvents.map((e, i) => (
-              <div key={i} className="flex gap-2.5">
+            {auditEventsState.map((e, i) => (
+              <div key={e.id} className="flex gap-2.5">
                 <div className="flex flex-col items-center">
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5 ${e.color}`} />
-                  {i < auditEvents.length - 1 && <div className="w-px flex-1 bg-border mt-1.5 min-h-[16px]" />}
+                  {i < auditEventsState.length - 1 && <div className="w-px flex-1 bg-border mt-1.5 min-h-[16px]" />}
                 </div>
                 <div className="pb-1">
                   <div className="text-xs font-medium text-foreground leading-tight">{e.title}</div>
@@ -419,6 +464,35 @@ export function EAIScreen({ onNavigate, activeUser, initialThreadId }: EAIScreen
       setMentionNotice(`Notified tagged users: ${taggedUsers.map(name => `@${name}`).join(', ')}`);
       setTimeout(() => setMentionNotice(''), 3000);
     }
+    // Check for actions that require connectors (mock behavior)
+    const lower = input.toLowerCase();
+    let needed: string | null = null;
+    if (lower.includes('schedule') || lower.includes('meeting') || lower.includes('calendar')) {
+      needed = 'google-calendar';
+    } else if (lower.includes('email') || lower.includes('send an email') || lower.includes('send email') || lower.includes('write an email')) {
+      needed = 'gmail';
+    } else if (lower.includes('drive') || lower.includes('file') || lower.includes('attachment')) {
+      needed = 'google-drive';
+    }
+
+    if (needed && !isConnectorConnected(needed)) {
+      // ask for permission in-chat
+      const requestMsg: EMessage = {
+        id: `m-${Date.now() + 2}`,
+        role: 'agent', agentName: 'Command', agentType: 'super',
+        content: `To complete this request I need access to your ${needed.replace('-', ' ')}. Do you allow Command to connect?`,
+        timestamp: new Date().toISOString(), type: 'connector-request',
+        cardData: { connectorId: needed },
+      } as any;
+      setThreads(prev => prev.map(t =>
+        t.id === (selectedId || prev[0]?.id)
+          ? { ...t, messages: [...t.messages, requestMsg], lastMessage: requestMsg.content }
+          : t
+      ));
+      setInput('');
+      return;
+    }
+
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
@@ -433,7 +507,7 @@ export function EAIScreen({ onNavigate, activeUser, initialThreadId }: EAIScreen
           ? { ...t, messages: [...t.messages, reply], lastMessage: reply.content }
           : t
       ));
-    }, 1800);
+    }, 1200);
   };
 
   const filteredThreads = threads.filter(t =>

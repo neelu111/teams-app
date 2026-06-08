@@ -1,8 +1,9 @@
 import React from 'react';
-import { Zap, Building2, Users, ArrowRight, Plus, Activity } from 'lucide-react';
+import { Zap, Building2, Users, ArrowRight, Plus, Activity, ArrowLeft } from 'lucide-react';
 
 interface WorkspaceScreenProps {
   onSelect: () => void;
+  onBack: () => void;
 }
 
 const workspaces = [
@@ -11,10 +12,14 @@ const workspaces = [
   { id: 'ws-3', name: 'Manexa Ventures', domain: 'ventures.manexa.ai', members: 8, workflows: 67, plan: 'Starter', status: 'inactive', color: '#F59E0B', initials: 'MV', lastActive: '3 days ago' },
 ];
 
-export function WorkspaceScreen({ onSelect }: WorkspaceScreenProps) {
+export function WorkspaceScreen({ onSelect, onBack }: WorkspaceScreenProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#F7F8FA' }}>
+    <div className="min-h-screen flex items-center justify-center relative" style={{ background: '#F7F8FA' }}>
       <div className="w-full max-w-xl px-4">
+        {/* Back button top-left */}
+        <button onClick={onBack} className="absolute top-6 left-6 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to sign in
+        </button>
         {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-200">

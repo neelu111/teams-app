@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  Home, Bot, CheckSquare, GitBranch, Bell,
+  Home, Bot, CheckSquare, GitBranch, Bell, Settings, Plug,
   User, PanelLeftClose, PanelLeftOpen, LogOut
 } from 'lucide-react';
 import { EScreen, employeeNotifications } from './employeeData';
@@ -10,6 +10,8 @@ import { ETasksScreen } from './screens/ETasksScreen';
 import { EWorkflowsScreen } from './screens/EWorkflowsScreen';
 import { ENotificationsScreen } from './screens/ENotificationsScreen';
 import { EProfileScreen } from './screens/EProfileScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { EConnectorsScreen } from './screens/EConnectorsScreen';
 
 interface EmployeeAppProps {
   activeUser: { id: string; name: string; avatar: string; role: string; email?: string; department?: string };
@@ -23,11 +25,13 @@ const navItems: { screen: EScreen; label: string; icon: React.ElementType; badge
   { screen: 'workflows',     label: 'Workflows',     icon: GitBranch },
   { screen: 'notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifs' },
   { screen: 'profile',       label: 'Profile',       icon: User },
+  { screen: 'connectors',    label: 'Connectors',    icon: Plug },
+  { screen: 'settings',      label: 'Settings',      icon: Settings },
 ];
 
 const screenTitles: Record<EScreen, string> = {
   home: 'Home', ai: 'AI Assistant', tasks: 'My Tasks', workflows: 'My Workflows',
-  notifications: 'Notifications', profile: 'Profile',
+  notifications: 'Notifications', profile: 'Profile', connectors: 'Connectors', settings: 'Settings',
 };
 
 const roleLabels: Record<string, string> = {
@@ -59,6 +63,16 @@ export function EmployeeApp({ activeUser, onLogout }: EmployeeAppProps) {
       case 'workflows':     return <EWorkflowsScreen onNavigate={navigate} initialWorkflowId={selectedId} />;
       case 'notifications': return <ENotificationsScreen onNavigate={navigate} />;
       case 'profile':       return <EProfileScreen onNavigate={navigate} activeUser={activeUser} onLogout={onLogout} />;
+      case 'connectors':    return <EConnectorsScreen onNavigate={navigate} />;
+      case 'settings':      return (
+        <SettingsScreen activeUser={activeUser} onNavigate={(s) => {
+          if (s === 'login') return onLogout();
+          if (s === 'notifications') return navigate('notifications');
+          if (s === 'profile') return navigate('profile');
+          if (s === 'workspace' || s === 'dashboard') return navigate('home');
+          if (s === 'settings') return navigate('settings');
+        }} />
+      );
       default:              return <EHomeScreen onNavigate={navigate} activeUser={activeUser} />;
     }
   };

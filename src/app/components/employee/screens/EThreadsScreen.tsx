@@ -57,8 +57,9 @@ function ApprovalCard({ data, onApprove, onDecline, approved, declined }: {
 }
 
 export function EThreadsScreen({ onNavigate, initialThreadId }: EThreadsScreenProps) {
-  const [threads, setThreads] = useState<EThread[]>(employeeThreads);
-  const [selectedId, setSelectedId] = useState<string | null>(initialThreadId || employeeThreads[0]?.id || null);
+  const initialThreads = [...employeeThreads].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const [threads, setThreads] = useState<EThread[]>(initialThreads);
+  const [selectedId, setSelectedId] = useState<string | null>(initialThreadId || initialThreads[0]?.id || null);
   const [search, setSearch] = useState('');
   const [input, setInput] = useState('');
   const [cursor, setCursor] = useState(0);

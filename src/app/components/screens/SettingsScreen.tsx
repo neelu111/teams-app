@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Building2, Bell, Shield, Palette, Globe, Key, LogOut, ChevronRight, Upload, Save } from 'lucide-react';
+import { Building2, Bell, Shield, Palette, Globe, Key, LogOut, ChevronRight, Upload, Save, FileText } from 'lucide-react';
 import { Screen } from '../types';
 import { UserAvatar } from '../shared/AgentAvatar';
+import { listAuditEvents } from '../shared/audit';
 
 interface SettingsScreenProps {
   onNavigate: (screen: Screen) => void;
+  activeUser?: { id?: string; name?: string; avatar?: string; role?: string; email?: string; department?: string };
 }
 
 const settingsSections = [
@@ -14,12 +16,13 @@ const settingsSections = [
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'appearance', label: 'Appearance', icon: Palette },
   { id: 'api', label: 'API Keys', icon: Key },
+  { id: 'audit', label: 'Audit Log', icon: FileText },
 ];
 
-export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
+export function SettingsScreen({ onNavigate, activeUser }: SettingsScreenProps) {
   const [activeSection, setActiveSection] = useState('profile');
-  const [name, setName] = useState('Kumar');
-  const [email, setEmail] = useState('kumar@manexa.ai');
+  const [name, setName] = useState(activeUser?.name || '');
+  const [email, setEmail] = useState(activeUser?.email || '');
   const [timezone, setTimezone] = useState('America/New_York');
   const [workspaceName, setWorkspaceName] = useState('Manexa AI Labs');
   const [notifSettings, setNotifSettings] = useState({
@@ -80,10 +83,10 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
               </div>
               <div className="bg-white border border-border rounded-xl p-5 space-y-4">
                 <div className="flex items-center gap-4 pb-4 border-b border-border">
-                  <UserAvatar initials="K" name="Kumar" size="lg" />
+                  <UserAvatar initials={activeUser?.avatar || name?.[0] || 'A'} name={activeUser?.name || name || 'Employee'} size="lg" />
                   <div>
-                    <div className="text-sm font-medium text-foreground mb-1">{name}</div>
-                    <div className="text-xs text-muted-foreground mb-2">Super Admin · Manexa AI Labs</div>
+                    <div className="text-sm font-medium text-foreground mb-1">{name || activeUser?.name || 'Employee'}</div>
+                    <div className="text-xs text-muted-foreground mb-2">{activeUser?.role || 'Employee'} · {activeUser?.department || 'Company'}</div>
                     <button className="flex items-center gap-1.5 text-xs text-primary hover:underline">
                       <Upload className="w-3.5 h-3.5" /> Change photo
                     </button>
@@ -247,7 +250,7 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
             </div>
           )}
 
-          {(activeSection === 'appearance') && (
+          {activeSection === 'appearance' && (
             <div className="space-y-5">
               <div>
                 <h2 className="text-lg font-semibold text-foreground mb-0.5">Appearance</h2>
@@ -276,6 +279,41 @@ export function SettingsScreen({ onNavigate }: SettingsScreenProps) {
                       <button key={d} className={`px-3 py-1.5 border rounded-lg text-xs font-medium transition-colors ${d === 'Comfortable' ? 'border-primary bg-accent text-primary' : 'border-border text-muted-foreground hover:border-primary/40'}`}>{d}</button>
                     ))}
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'audit' && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-0.5">Audit Log</h2>
+                <p className="text-xs text-muted-foreground">Recent connector and agent actions for your account</p>
+              </div>
+              <div className="bg-white border border-border rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-semibold">Events</div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => {
+                      const data = listAuditEvents();
+                      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url; a.download = 'audit-events.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+                    }} className="px-3 py-1.5 border border-border rounded-lg text-sm text-foreground hover:bg-muted">Export JSON</button>
+                    <button onClick={() => { localStorage.removeItem('employeeAudit_v1'); window.location.reload(); }} className="px-3 py-1.5 border border-red-200 text-red-600 rounded-lg text-sm">Clear</button>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-[320px] overflow-y-auto">
+                  {listAuditEvents().map(ev => (
+                    <div key={ev.id} className="p-3 border border-border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm font-medium text-foreground">{ev.title}</div>
+                        <div className="text-xs text-muted-foreground">{new Date(ev.time).toLocaleString()}</div>
+                      </div>
+                      {ev.meta && <div className="text-xs text-muted-foreground mt-1">{ev.meta}</div>}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
