@@ -1,4 +1,4 @@
-export type MScreen = 'dashboard' | 'team-overview' | 'ai' | 'team-tasks' | 'team-workflows' | 'approvals' | 'employees' | 'reports' | 'notifications';
+export type MScreen = 'dashboard' | 'team-overview' | 'ai' | 'team-work' | 'approvals' | 'employees' | 'reports' | 'notifications';
 
 export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'changes-requested';
 export type ApprovalCategory = 'discount' | 'expense' | 'contract' | 'deadline' | 'budget' | 'headcount';

@@ -5,6 +5,7 @@ import { AgentAvatar } from '../../shared/AgentAvatar';
 
 interface MAIScreenProps {
   onNavigate: (screen: MScreen, id?: string) => void;
+  activeUser?: { id: string; name: string; avatar?: string; role?: string };
 }
 
 interface Message {

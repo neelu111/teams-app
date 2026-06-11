@@ -78,6 +78,23 @@ export const sampleThreads: Thread[] = [
   { id: 'thread-006', title: 'Weekly Sales Forecast', lastMessage: 'Sales: Q3 pipeline at $2.4M. 3 deals at risk — recommend urgent follow-up.', timestamp: '2026-06-02T09:30:00Z', participants: ['Sales', 'Neelu', 'Kumar'], unread: 0, workflowId: 'wf-007', agentId: 'agent-sales', pinned: false },
 ];
 
+// Add example subthreads for thread-001
+sampleThreads[0].subthreads = [
+  {
+    id: 'sub-001',
+    title: 'Targeting list review — Divya & Neelu',
+    participants: ['Divya', 'Neelu', 'Sales'],
+    lastMessage: 'Neelu: Reviewed — looks good, approve the top 10.',
+    timestamp: '2026-06-02T12:15:00Z',
+    messages: [
+      { role: 'user', name: 'Divya', time: '11:40 AM', content: 'Shared the targeting list draft. Please review.' },
+      { role: 'user', name: 'Neelu', time: '11:52 AM', content: 'Looking now — I will flag the top accounts.' },
+      { role: 'agent', name: 'Sales', time: '12:05 PM', content: 'Added scores and tags to the list.' },
+      { role: 'user', name: 'Neelu', time: '12:15 PM', content: 'Reviewed — looks good, approve the top 10.' },
+    ],
+  },
+];
+
 export const sampleNotifications: Notification[] = [
   { id: 'notif-001', type: 'approval', title: 'Approval Required', message: 'Finance needs your approval for vendor payment batch totaling $127,450. 3 invoices pending.', timestamp: '2026-06-02T11:00:00Z', read: false, workflowId: 'wf-003', priority: 'high' },
   { id: 'notif-002', type: 'error', title: 'Workflow Blocked', message: 'Customer escalation TK-4521 is blocked. SLA breach in 2 hours. Immediate action required.', timestamp: '2026-06-02T10:15:00Z', read: false, workflowId: 'wf-004', priority: 'high' },

@@ -11,7 +11,12 @@ function loadKey(key: string): AuditEvent[] {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return [];
-    return JSON.parse(raw) as AuditEvent[];
+    const parsed = JSON.parse(raw) as AuditEvent[];
+    // Normalize meta to string to avoid objects being passed into JSX
+    return parsed.map(p => ({
+      ...p,
+      meta: typeof p.meta === 'string' || typeof p.meta === 'number' ? String(p.meta) : (p.meta ? JSON.stringify(p.meta) : undefined),
+    }));
   } catch (e) { return []; }
 }
 
@@ -24,8 +29,10 @@ export function listAuditEvents(connectorId?: string): AuditEvent[] {
   return loadKey(GLOBAL_KEY);
 }
 
-export function addAuditEvent(e: { title: string; meta?: string; color?: string; connectorId?: string }) {
-  const ev: AuditEvent = { id: `ae-${Date.now()}`, time: new Date().toISOString(), title: e.title, meta: e.meta, color: e.color || 'bg-blue-500', connectorId: e.connectorId };
+export function addAuditEvent(e: { title: string; meta?: any; color?: string; connectorId?: string }) {
+  // Ensure meta is a string to avoid rendering objects directly into JSX elsewhere
+  const metaStr = typeof e.meta === 'string' || typeof e.meta === 'number' ? String(e.meta) : (e.meta ? JSON.stringify(e.meta) : undefined);
+  const ev: AuditEvent = { id: `ae-${Date.now()}`, time: new Date().toISOString(), title: e.title, meta: metaStr, color: e.color || 'bg-blue-500', connectorId: e.connectorId };
   // write to global
   const global = loadKey(GLOBAL_KEY);
   global.unshift(ev);

@@ -8,8 +8,12 @@ import { MScreen, managerNotifications } from './managerData';
 import { MDashboardScreen } from './screens/MDashboardScreen';
 import { MTeamOverviewScreen } from './screens/MTeamOverviewScreen';
 import { MAIScreen } from './screens/MAIScreen';
+import { ThreadsScreen } from '../screens/ThreadsScreen';
+import { sampleThreads } from '../sampleData';
+import { ThreadListItem } from '../screens/ThreadsScreen';
 import { MTeamTasksScreen } from './screens/MTeamTasksScreen';
 import { MTeamWorkflowsScreen } from './screens/MTeamWorkflowsScreen';
+import { MTeamWorkTab } from './screens/MTeamWorkTab';
 import { MApprovalsScreen } from './screens/MApprovalsScreen';
 import { MEmployeesScreen } from './screens/MEmployeesScreen';
 import { MReportsScreen } from './screens/MReportsScreen';
@@ -24,8 +28,7 @@ const navItems: { screen: MScreen; label: string; icon: React.ElementType; badge
   { screen: 'dashboard',      label: 'Dashboard',       icon: LayoutDashboard },
   { screen: 'team-overview',  label: 'Team Overview',   icon: Users },
   { screen: 'ai',             label: 'AI Assistant',    icon: Bot },
-  { screen: 'team-tasks',     label: 'Team Tasks',      icon: CheckSquare },
-  { screen: 'team-workflows', label: 'Team Workflows',  icon: GitBranch },
+  { screen: 'team-work',      label: 'Work',             icon: GitBranch },
   { screen: 'approvals',      label: 'Approvals',       icon: CheckCircle2, badgeKey: 'approvals' },
   { screen: 'employees',      label: 'Employees',       icon: UserCheck },
   { screen: 'reports',        label: 'Reports',         icon: BarChart2 },
@@ -36,8 +39,7 @@ const screenTitles: Record<MScreen, string> = {
   dashboard:      'Manager Dashboard',
   'team-overview':'Team Overview',
   ai:             'AI Assistant',
-  'team-tasks':   'Team Tasks',
-  'team-workflows':'Team Workflows',
+  'team-work':    'Work',
   approvals:      'Approvals Center',
   employees:      'Employees',
   reports:        'Reports',
@@ -53,7 +55,9 @@ const fullScreens: MScreen[] = ['ai'];
 
 export function ManagerApp({ activeUser, onLogout }: ManagerAppProps) {
   const [screen, setScreen] = useState<MScreen>('dashboard');
+  
   const [selectedId, setSelectedId] = useState<string | undefined>(undefined);
+  const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
   const [pinned, setPinned] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -79,9 +83,36 @@ export function ManagerApp({ activeUser, onLogout }: ManagerAppProps) {
     switch (screen) {
       case 'dashboard':      return <MDashboardScreen onNavigate={navigate} activeUser={activeUser} />;
       case 'team-overview':  return <MTeamOverviewScreen onNavigate={navigate} />;
-      case 'ai':             return <MAIScreen onNavigate={navigate} />;
-      case 'team-tasks':     return <MTeamTasksScreen onNavigate={navigate} />;
-      case 'team-workflows': return <MTeamWorkflowsScreen onNavigate={navigate} initialWorkflowId={selectedId} />;
+      case 'ai':
+        return (
+          <div className="h-full flex">
+            <div className="w-64 flex-shrink-0 bg-white border-r border-border flex flex-col">
+              <div className="px-4 py-3 border-b border-border">
+                <div className="relative">
+                  <input type="text" placeholder="Search threads..." className="w-full pl-3 pr-3 py-1.5 text-xs bg-muted/60 border border-border rounded-lg focus:outline-none" />
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto py-2">
+                <div className="px-3 py-1">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pinned</span>
+                </div>
+                {sampleThreads.filter(t => t.pinned).map(t => (
+                  <ThreadListItem key={t.id} thread={t} active={activeThreadId === t.id} onClick={() => navigate('threads', t.id)} />
+                ))}
+                <div className="px-3 py-1 mt-2">
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent</span>
+                </div>
+                {sampleThreads.filter(t => !t.pinned).map(t => (
+                  <ThreadListItem key={t.id} thread={t} active={activeThreadId === t.id} onClick={() => navigate('threads', t.id)} />
+                ))}
+              </div>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <MAIScreen onNavigate={navigate} activeUser={activeUser} />
+            </div>
+          </div>
+        );
+      case 'team-work':      return <MTeamWorkTab onNavigate={navigate} />;
       case 'approvals':      return <MApprovalsScreen onNavigate={navigate} initialApprovalId={selectedId} />;
       case 'employees':      return <MEmployeesScreen onNavigate={navigate} initialEmployeeId={selectedId} />;
       case 'reports':        return <MReportsScreen onNavigate={navigate} />;

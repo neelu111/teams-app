@@ -1,4 +1,4 @@
-export type EScreen = 'home' | 'ai' | 'tasks' | 'workflows' | 'notifications' | 'profile' | 'settings' | 'connectors';
+export type EScreen = 'home' | 'ai' | 'tasks' | 'workflows' | 'work' | 'notifications' | 'profile' | 'settings' | 'connectors';
 
 export type TaskStatus = 'pending' | 'in-progress' | 'needs-action' | 'completed' | 'overdue';
 export type TaskPriority = 'urgent' | 'high' | 'medium' | 'low';

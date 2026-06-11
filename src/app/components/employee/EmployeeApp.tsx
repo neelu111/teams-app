@@ -8,6 +8,7 @@ import { EHomeScreen } from './screens/EHomeScreen';
 import { EAIScreen } from './screens/EAIScreen';
 import { ETasksScreen } from './screens/ETasksScreen';
 import { EWorkflowsScreen } from './screens/EWorkflowsScreen';
+import { EWorkTab } from './screens/EWorkTab';
 import { ENotificationsScreen } from './screens/ENotificationsScreen';
 import { EProfileScreen } from './screens/EProfileScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -21,8 +22,7 @@ interface EmployeeAppProps {
 const navItems: { screen: EScreen; label: string; icon: React.ElementType; badgeKey?: string }[] = [
   { screen: 'home',          label: 'Home',          icon: Home },
   { screen: 'ai',            label: 'AI Assistant',  icon: Bot },
-  { screen: 'tasks',         label: 'My Tasks',      icon: CheckSquare },
-  { screen: 'workflows',     label: 'Workflows',     icon: GitBranch },
+  { screen: 'work',          label: 'Work',           icon: GitBranch },
   { screen: 'notifications', label: 'Notifications', icon: Bell, badgeKey: 'notifs' },
   { screen: 'profile',       label: 'Profile',       icon: User },
   { screen: 'connectors',    label: 'Connectors',    icon: Plug },
@@ -30,7 +30,7 @@ const navItems: { screen: EScreen; label: string; icon: React.ElementType; badge
 ];
 
 const screenTitles: Record<EScreen, string> = {
-  home: 'Home', ai: 'AI Assistant', tasks: 'My Tasks', workflows: 'My Workflows',
+  home: 'Home', ai: 'AI Assistant', work: 'Work',
   notifications: 'Notifications', profile: 'Profile', connectors: 'Connectors', settings: 'Settings',
 };
 
@@ -58,9 +58,8 @@ export function EmployeeApp({ activeUser, onLogout }: EmployeeAppProps) {
   const renderScreen = () => {
     switch (screen) {
       case 'home':          return <EHomeScreen onNavigate={navigate} activeUser={activeUser} />;
-      case 'ai':            return <EAIScreen onNavigate={navigate} />;
-      case 'tasks':         return <ETasksScreen onNavigate={navigate} initialTaskId={selectedId} />;
-      case 'workflows':     return <EWorkflowsScreen onNavigate={navigate} initialWorkflowId={selectedId} />;
+      case 'ai':            return <EAIScreen onNavigate={navigate} activeUser={activeUser} />;
+      case 'work':          return <EWorkTab onNavigate={navigate} initialTaskId={selectedId} initialWorkflowId={selectedId} />;
       case 'notifications': return <ENotificationsScreen onNavigate={navigate} />;
       case 'profile':       return <EProfileScreen onNavigate={navigate} activeUser={activeUser} onLogout={onLogout} />;
       case 'connectors':    return <EConnectorsScreen onNavigate={navigate} />;

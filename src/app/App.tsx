@@ -177,8 +177,8 @@ export default function App() {
       case 'task-detail': return <TaskDetailScreen taskId={selectedId || 'task-001'} onNavigate={navigate} />;
       case 'agents': return <AgentsScreen onNavigate={navigate} />;
       case 'agent-profile': return <AgentProfileScreen agentId={selectedId || 'agent-sales'} onNavigate={navigate} />;
-      case 'threads': return <ThreadsScreen onNavigate={navigate} threadId={selectedId} />;
-      case 'thread-detail': return <ThreadsScreen onNavigate={navigate} threadId={selectedId} />;
+      case 'threads': return <ThreadsScreen onNavigate={navigate} threadId={selectedId} activeUser={activeUser} />;
+      case 'thread-detail': return <ThreadsScreen onNavigate={navigate} threadId={selectedId} activeUser={activeUser} />;
       case 'notifications': return <NotificationsScreen onNavigate={navigate} onMarkRead={markAllRead} />;
       case 'reports': return <ReportsScreen onNavigate={navigate} />;
       case 'audit': return <AuditScreen onNavigate={navigate} />;

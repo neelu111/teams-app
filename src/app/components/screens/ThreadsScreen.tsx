@@ -1,13 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Pin, ChevronRight, Send, Paperclip, MoreHorizontal } from 'lucide-react';
 import { Screen } from '../types';
-import { sampleThreads } from '../sampleData';
+import { sampleThreads, sampleNotifications } from '../sampleData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '../ui/dialog';
 import { AgentAvatar, UserAvatar } from '../shared/AgentAvatar';
 import { MentionOption, getActiveMention, getMentionSuggestions, insertMention, renderTextWithMentions, extractMentionLabels } from '../shared/mentions';
 
 interface ThreadsScreenProps {
   onNavigate: (screen: Screen, id?: string) => void;
   threadId?: string;
+  activeUser?: { id: string; name: string; role: string; avatar?: string };
+  hideSidebar?: boolean;
 }
 
 const threadMessages: Record<string, { role: string; name: string; time: string; content: string; type?: string }[]> = {
@@ -31,8 +34,13 @@ const threadMessages: Record<string, { role: string; name: string; time: string;
   ],
 };
 
-export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
+export function ThreadsScreen({ onNavigate, threadId, activeUser }: ThreadsScreenProps) {
   const [activeThread, setActiveThread] = useState(threadId || sampleThreads[0].id);
+  const [activeSubthread, setActiveSubthread] = useState<string | null>(null);
+  const [creatingSubthreadFor, setCreatingSubthreadFor] = useState<number | null>(null);
+  const [subModalOpen, setSubModalOpen] = useState(false);
+  const [subModalTitle, setSubModalTitle] = useState('');
+  const [subModalContent, setSubModalContent] = useState('');
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState(threadMessages[activeThread] || threadMessages['thread-001']);
   const [cursor, setCursor] = useState(0);
@@ -44,6 +52,31 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
   useEffect(() => {
     setMessages(threadMessages[activeThread] || threadMessages['thread-001']);
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [activeThread]);
+
+  // support deep link format: threadId or threadId:subId
+  useEffect(() => {
+    if (!threadId) return;
+    if (threadId.includes(':')) {
+      const [t, s] = threadId.split(':');
+      setActiveThread(t);
+      setActiveSubthread(s);
+    } else {
+      setActiveThread(threadId);
+      setActiveSubthread(null);
+    }
+  }, [threadId]);
+
+  // Auto-open first subthread when activeThread changes (unless a subthread is already selected)
+  useEffect(() => {
+    const t = sampleThreads.find(st => st.id === activeThread);
+    if (!t) return;
+    if (activeSubthread) return; // don't override explicit selection
+    if (t.subthreads && t.subthreads.length > 0) {
+      setActiveSubthread(t.subthreads[0].id);
+    } else {
+      setActiveSubthread(null);
+    }
   }, [activeThread]);
 
   const handleSend = () => {
@@ -99,7 +132,8 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
   return (
     <div className="h-full flex overflow-hidden">
       {/* Thread List */}
-      <div className="w-64 flex-shrink-0 bg-white border-r border-border flex flex-col">
+      {!hideSidebar && (
+        <div className="w-64 flex-shrink-0 bg-white border-r border-border flex flex-col">
         <div className="px-4 py-3 border-b border-border">
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
@@ -107,21 +141,41 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto py-2">
+          
           {/* Pinned */}
           <div className="px-3 py-1">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pinned</span>
           </div>
           {sampleThreads.filter(t => t.pinned).map(t => (
-            <ThreadListItem key={t.id} thread={t} active={activeThread === t.id} onClick={() => setActiveThread(t.id)} />
+            <ThreadListItem
+              key={t.id}
+              thread={t}
+              active={activeThread === t.id}
+              onClick={() => {
+                setActiveThread(t.id);
+                if (t.subthreads && t.subthreads.length > 0) setActiveSubthread(t.subthreads[0].id);
+                else setActiveSubthread(null);
+              }}
+            />
           ))}
           <div className="px-3 py-1 mt-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Recent</span>
           </div>
           {sampleThreads.filter(t => !t.pinned).map(t => (
-            <ThreadListItem key={t.id} thread={t} active={activeThread === t.id} onClick={() => setActiveThread(t.id)} />
+            <ThreadListItem
+              key={t.id}
+              thread={t}
+              active={activeThread === t.id}
+              onClick={() => {
+                setActiveThread(t.id);
+                if (t.subthreads && t.subthreads.length > 0) setActiveSubthread(t.subthreads[0].id);
+                else setActiveSubthread(null);
+              }}
+            />
           ))}
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Thread Detail */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -149,7 +203,47 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.map((msg, i) => {
+          {activeSubthread ? (
+            (() => {
+              const sub = thread.subthreads?.find(s => s.id === activeSubthread);
+              if (!sub) return <div className="text-sm text-muted-foreground">Subthread not found</div>;
+              return (
+                <div className="h-full flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h4 className="text-sm font-semibold">{sub.title}</h4>
+                      <div className="text-xs text-muted-foreground">{sub.participants.join(', ')}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setActiveSubthread(null)} className="text-xs text-muted-foreground hover:underline">Back to thread</button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto space-y-4">
+                    {sub.messages.map((msg, i) => {
+                      const isUser = msg.role === 'user';
+                      return (
+                        <div key={i} className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+                          {isUser ? (
+                            <UserAvatar initials={msg.name.split(' ').map(n => n[0]).join('')} name={msg.name} size="sm" />
+                          ) : (
+                            <AgentAvatar type={'super'} name={msg.name} size="sm" />
+                          )}
+                          <div className={`max-w-lg ${isUser ? 'items-end' : ''} flex flex-col`}>
+                            {!isUser && <div className="flex items-center gap-2 mb-1"><span className="text-xs font-semibold text-foreground">{msg.name}</span><span className="text-xs text-muted-foreground">{msg.time}</span></div>}
+                            <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${isUser ? 'bg-primary text-primary-foreground rounded-tr-sm' : 'bg-white border border-border text-foreground rounded-tl-sm shadow-sm'}`}>
+                              {msg.content}
+                            </div>
+                            {isUser && <span className="text-xs text-muted-foreground mt-1">{msg.time}</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            messages.map((msg, i) => {
             const isUser = msg.role === 'user';
             const agentType = agentColors[msg.name] || 'super';
             return (
@@ -167,17 +261,37 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
                         {renderTextWithMentions(line, isUser ? 'bg-white/25 rounded px-1 py-0.5 font-semibold' : 'bg-primary/10 text-primary rounded px-1 py-0.5 font-medium')}
                       </p>
                     ))}
+
+                    <div className="mt-2 pt-2 border-t border-border flex items-center gap-2">
+                      <button onClick={() => {
+                        setCreatingSubthreadFor(i);
+                        setSubModalTitle(`Subthread - ${new Date().toLocaleTimeString()}`);
+                        setSubModalContent(msg.content.split('\n').slice(0,3).join('\n'));
+                        setSubModalOpen(true);
+                      }} className="text-xs text-muted-foreground hover:text-foreground">Start subthread</button>
+                    </div>
                   </div>
                   {isUser && <span className="text-xs text-muted-foreground mt-1">{msg.time}</span>}
                 </div>
               </div>
             );
-          })}
+            })
+          )}
           <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
         <div className="px-6 pb-5 pt-3">
+          {thread.subthreads && thread.subthreads.length > 0 && (
+            <div className="px-6 mb-3 flex items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Subthreads</span>
+              <div className="flex gap-2">
+                {thread.subthreads.map(st => (
+                  <button key={st.id} onClick={() => setActiveSubthread(st.id)} className="text-xs px-2 py-1 bg-muted rounded-lg">{st.title}</button>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="relative flex items-end gap-3 bg-white border border-border rounded-xl p-3 focus-within:border-primary/40 transition-all shadow-sm">
             <textarea
               ref={textareaRef}
@@ -249,11 +363,52 @@ export function ThreadsScreen({ onNavigate, threadId }: ThreadsScreenProps) {
           )}
         </div>
       </div>
+      {/* Subthread modal */}
+      <Dialog open={subModalOpen} onOpenChange={(open) => { if (!open) { setCreatingSubthreadFor(null); } setSubModalOpen(open); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start subthread</DialogTitle>
+            <DialogDescription>Create a focused subthread referencing the selected message.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-2">
+            <input value={subModalTitle} onChange={e => setSubModalTitle(e.target.value)} placeholder="Subthread title" className="w-full px-3 py-2 text-sm border border-border rounded-md mb-2" />
+            <textarea value={subModalContent} onChange={e => setSubModalContent(e.target.value)} placeholder="Initial message" className="w-full px-3 py-2 text-sm border border-border rounded-md mb-2" rows={5} />
+          </div>
+          <DialogFooter>
+            <div className="flex gap-2">
+              <button onClick={() => {
+                const title = subModalTitle.trim() || `Subthread - ${new Date().toLocaleTimeString()}`;
+                const content = subModalContent.trim();
+                const newId = `sub-${Math.random().toString(36).slice(2,9)}`;
+                const creator = activeUser?.name || 'Kumar';
+                const sub = { id: newId, title, participants: [ creator, thread.participants[0] || 'Command' ], lastMessage: content || title, timestamp: new Date().toISOString(), messages: [{ role: 'user', name: creator, time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }), content }] };
+                const tIndex = sampleThreads.findIndex(st => st.id === activeThread);
+                if (tIndex >= 0) {
+                  if (!sampleThreads[tIndex].subthreads) sampleThreads[tIndex].subthreads = [];
+                  sampleThreads[tIndex].subthreads.push(sub as any);
+                }
+                // push a notification and notify listeners
+                const notifId = `n-${Math.random().toString(36).slice(2,9)}`;
+                sampleNotifications.unshift({ id: notifId, type: 'mention', title: 'Subthread started', message: `${creator} started subthread "${title}" in ${thread.title}`, timestamp: new Date().toISOString(), read: false, priority: 'medium', threadLink: `${activeThread}:${newId}` } as any);
+                window.dispatchEvent(new CustomEvent('notifications-updated'));
+
+                setSubModalOpen(false);
+                setCreatingSubthreadFor(null);
+                setActiveSubthread(newId);
+                setMentionNotice(`Subthread created and participants notified.`);
+                setTimeout(() => setMentionNotice(''), 3000);
+              }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-md">Create</button>
+              <button onClick={() => { setSubModalOpen(false); setCreatingSubthreadFor(null); }} className="px-3 py-1.5 border border-border rounded-md text-sm">Cancel</button>
+            </div>
+          </DialogFooter>
+          <DialogClose />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function ThreadListItem({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
+export function ThreadListItem({ thread, active, onClick }: { thread: any; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
       className={`w-full text-left px-3 py-2.5 mx-1 rounded-lg transition-colors ${active ? 'bg-accent' : 'hover:bg-muted/40'}`}
@@ -262,9 +417,14 @@ function ThreadListItem({ thread, active, onClick }: { thread: any; active: bool
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-foreground truncate">{thread.title}</span>
-            {thread.unread > 0 && (
-              <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 ml-1">{thread.unread}</span>
-            )}
+            <div className="flex items-center gap-1">
+              {thread.subthreads && thread.subthreads.length > 0 && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{thread.subthreads.length} sub</span>
+              )}
+              {thread.unread > 0 && (
+                <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center flex-shrink-0 ml-1">{thread.unread}</span>
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground truncate mt-0.5 leading-tight">{thread.lastMessage}</p>
           <span className="text-xs text-muted-foreground">{new Date(thread.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>

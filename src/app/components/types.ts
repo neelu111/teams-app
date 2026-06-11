@@ -79,6 +79,22 @@ export interface Agent {
   description: string;
 }
 
+export interface SubthreadMessage {
+  role: string;
+  name: string;
+  time: string;
+  content: string;
+}
+
+export interface Subthread {
+  id: string;
+  title: string;
+  participants: string[];
+  lastMessage: string;
+  timestamp: string;
+  messages: SubthreadMessage[];
+}
+
 export interface Thread {
   id: string;
   title: string;
@@ -89,6 +105,7 @@ export interface Thread {
   workflowId?: string;
   agentId?: string;
   pinned: boolean;
+  subthreads?: Subthread[];
 }
 
 export interface Notification {
@@ -100,6 +117,7 @@ export interface Notification {
   read: boolean;
   workflowId?: string;
   taskId?: string;
+  threadLink?: string;
   priority: 'low' | 'medium' | 'high';
 }
 

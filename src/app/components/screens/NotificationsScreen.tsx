@@ -29,6 +29,7 @@ function timeAgo(timestamp: string) {
 export function NotificationsScreen({ onNavigate, onMarkRead }: NotificationsScreenProps) {
   const [filter, setFilter] = useState('All');
   const [notifications, setNotifications] = useState(sampleNotifications);
+  useNotificationsSync(setNotifications);
 
   const filters = ['All', 'Unread', 'Approvals', 'Completions', 'Mentions'];
   const filtered = notifications.filter(n => {
@@ -118,6 +119,17 @@ export function NotificationsScreen({ onNavigate, onMarkRead }: NotificationsScr
   );
 }
 
+// Listen for external updates to the shared `sampleNotifications` array
+// so other components (like ThreadsScreen) can push notifications.
+// This avoids creating a full global store for the demo.
+export function useNotificationsSync(setNotifications: (n: any) => void) {
+  React.useEffect(() => {
+    const handler = () => setNotifications([...sampleNotifications]);
+    window.addEventListener('notifications-updated', handler as EventListener);
+    return () => window.removeEventListener('notifications-updated', handler as EventListener);
+  }, [setNotifications]);
+}
+
 function NotifCard({ notif, onRead, onNavigate }: { notif: any; onRead: () => void; onNavigate: any }) {
   const cfg = typeIcons[notif.type] || typeIcons.reminder;
   const Icon = cfg.icon;
@@ -171,6 +183,12 @@ function NotifCard({ notif, onRead, onNavigate }: { notif: any; onRead: () => vo
             <button onClick={() => onNavigate('workflow-detail', notif.workflowId)}
               className="text-xs text-primary hover:underline flex items-center gap-1">
               View workflow <ChevronRight className="w-3 h-3" />
+            </button>
+          )}
+          {notif.threadLink && (
+            <button onClick={() => onNavigate('threads', notif.threadLink)}
+              className="text-xs text-primary hover:underline flex items-center gap-1 ml-2">
+              Open subthread <ChevronRight className="w-3 h-3" />
             </button>
           )}
         </div>
